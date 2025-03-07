@@ -1,23 +1,53 @@
+"use client";
 import { useState } from "react";
 import Image from "next/image";
 import { Pencil, Upload } from "lucide-react";
 
 const images: Array<string> = [
-    "https://source.unsplash.com/random/200x200?sig=1",
-    "https://source.unsplash.com/random/200x200?sig=2",
-    "https://source.unsplash.com/random/200x200?sig=3",
-    "https://source.unsplash.com/random/200x200?sig=4",
-    "https://source.unsplash.com/random/200x200?sig=5",
-  ];
-  
+  "https://source.unsplash.com/random/200x200?sig=1",
+  "https://source.unsplash.com/random/200x200?sig=2",
+  "https://source.unsplash.com/random/200x200?sig=3",
+  "https://source.unsplash.com/random/200x200?sig=4",
+  "https://source.unsplash.com/random/200x200?sig=5",
+];
 
 export default function GalleryPage() {
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isUploaded, setIsUploaded] = useState(false);
 
   const toggleSelection = (img: string) => {
     setSelectedImages((prev) =>
       prev.includes(img) ? prev.filter((i) => i !== img) : [...prev, img]
     );
+  };
+
+  const handleUpload = async () => {
+    setIsUploading(true);
+    try {
+      const response = await fetch('/api/create-cvat-task', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ selectedImages }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create CVAT task');
+      }
+
+      const { taskId } = await response.json();
+      
+      // Open the CVAT task in a new tab
+      window.open(`https://app.cvat.ai/tasks/${taskId}`, '_blank');
+      
+      setIsUploaded(true);
+    } catch (error) {
+      console.error('Error uploading to CVAT:', error);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
@@ -50,10 +80,19 @@ export default function GalleryPage() {
           <Pencil size={16} /> Edit
         </button>
         <button
-          disabled={selectedImages.length === 0}
+          disabled={selectedImages.length === 0 || isUploading || isUploaded}
+          onClick={handleUpload}
           className="flex items-center gap-2 bg-green-600 hover:bg-green-500 px-4 py-2 rounded-lg disabled:opacity-50"
         >
-          <Upload size={16} /> Upload
+          {isUploading ? (
+            "Uploading..."
+          ) : isUploaded ? (
+            "Corrected"
+          ) : (
+            <>
+              <Upload size={16} /> Upload to CVAT
+            </>
+          )}
         </button>
       </div>
     </div>

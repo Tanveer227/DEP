@@ -99,11 +99,11 @@
 //     </div>
 //   );
 // }
-
+"use client";
 import Image from "next/image";
 import Medical from "../components/preview_dataset"
-import Medical from "../components/upload_dataset"
 
+export default function Home() {
   return (
     <Medical></Medical>
   );
