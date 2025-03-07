@@ -1,85 +1,139 @@
 import { NextResponse } from "next/server";
 import fs from "fs/promises";
 import path from "path";
+import AdmZip from "adm-zip";
 
 export const config = {
   api: {
-    bodyParser: false, // Disable Next.js's default body parser to handle multipart form data
+    bodyParser: false, // Handle multipart/form-data manually
   },
 };
 
+async function exists(filePath: string): Promise<boolean> {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function updateDatasetJson(datasetDir: string, addedFiles: string[]) {
+  const datasetJsonPath = path.join(datasetDir, "dataset.json");
+  let datasetJson: { name: string; training: Array<{ image: string; label?: string }> } = {
+    name: path.basename(datasetDir),
+    training: []
+  };
+
+  // Try to read existing dataset.json
+  if (await exists(datasetJsonPath)) {
+    try {
+      const content = await fs.readFile(datasetJsonPath, "utf-8");
+      const parsedJson = JSON.parse(content);
+      // Ensure the parsed JSON has the expected structure
+      if (parsedJson.name && Array.isArray(parsedJson.training)) {
+        datasetJson = parsedJson;
+      }
+    } catch (error) {
+      console.error("Error reading or parsing dataset.json", error);
+    }
+  }
+
+  // Append new image entries if they do not already exist
+  for (const file of addedFiles) {
+    const imageEntry = `./imagesTr/${file}`;
+    const labelEntry = `./labelsTr/${file}`;
+    
+    if (!datasetJson.training.some(entry => entry.image === imageEntry)) {
+      const newEntry: { image: string; label?: string } = { image: imageEntry };
+      
+      // Only add the label if it actually exists
+      if (await exists(path.join(datasetDir, labelEntry))) {
+        newEntry.label = labelEntry;
+      }
+      
+      datasetJson.training.push(newEntry);
+    }
+  }
+
+  // Write updated JSON back to file
+  await fs.writeFile(datasetJsonPath, JSON.stringify(datasetJson, null, 2), "utf-8");
+}
+
+
 export async function POST(request: Request) {
   try {
-    // Parse form data
     const formData = await request.formData();
+    const datasetNameRaw = formData.get("datasetName") as string;
     const file = formData.get("file") as File;
-    const taskNumber = formData.get("taskNumber");
+
+    if (!datasetNameRaw || !datasetNameRaw.trim()) {
+      return NextResponse.json({ error: "Invalid dataset name" }, { status: 400 });
+    }
+    const datasetName = datasetNameRaw.trim();
 
     if (!file) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
     }
-
-    // Ensure taskNumber is valid
-    if (!taskNumber || isNaN(Number(taskNumber)) || Number(taskNumber) <= 0) {
-      return NextResponse.json(
-        { error: "Invalid task number provided" },
-        { status: 400 }
-      );
-    }
-
-    // Validate file type (must be a ZIP archive)
+    // Validate the ZIP file type
     if (file.type !== "application/zip" && !file.name.endsWith(".zip")) {
-      return NextResponse.json(
-        { error: "Uploaded file is not a ZIP archive" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Uploaded file is not a ZIP archive" }, { status: 400 });
     }
 
-    // Validate file size (500 MB limit)
-    const maxSizeInBytes = 500 * 1024 * 1024; // 500 MB
-    if (file.size > maxSizeInBytes) {
-      return NextResponse.json(
-        { error: "Uploaded file exceeds the maximum size of 500 MB" },
-        { status: 400 }
-      );
-    }
-
-    // Convert file to Buffer
+    // Convert the File into a Buffer.
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Define the upload directory using the task number:
-    // public/uploads/tasks/task_<number>
-    const uploadDir = path.join(
-      process.cwd(),
-      "public",
-      "uploads",
-      "tasks",
-      `task_${taskNumber}`
-    );
-
-    // Ensure upload directory exists (create it if it doesn't)
-    try {
-      await fs.access(uploadDir);
-    } catch {
-      await fs.mkdir(uploadDir, { recursive: true });
+    // Base directory is nnUNet_raw as defined
+    const baseDir = path.join(process.cwd(), "nnUNet_raw");
+    const datasetDir = path.join(baseDir, datasetName);
+    if (!(await exists(datasetDir))) {
+      return NextResponse.json({ error: "Dataset does not exist. Create it first." }, { status: 400 });
     }
 
-    // Save the file in this directory
-    const filePath = path.join(uploadDir, file.name);
-    await fs.writeFile(filePath, buffer);
+    // Create a temporary extraction folder within nnUNet_raw.
+    const tempDir = path.join(baseDir, "tempUpload", `temp_${Date.now()}`);
+    await fs.mkdir(tempDir, { recursive: true });
+    const tempZipPath = path.join(tempDir, "upload.zip");
+    await fs.writeFile(tempZipPath, buffer);
+
+    // Extract the ZIP contents into the temporary folder.
+    const zip = new AdmZip(tempZipPath);
+    zip.extractAllTo(tempDir, true);
+    await fs.unlink(tempZipPath);
+
+    // Determine the source for training images.
+    const potentialImagesTr = path.join(tempDir, "imagesTr");
+    const imagesTrSource = (await exists(potentialImagesTr)) ? potentialImagesTr : tempDir;
+
+    // Destination: the imagesTr folder in the target dataset.
+    const destImagesTr = path.join(datasetDir, "imagesTr");
+    const filesInSource = await fs.readdir(imagesTrSource);
+    const copiedFiles: string[] = [];
+
+    for (const f of filesInSource) {
+      const srcPath = path.join(imagesTrSource, f);
+      const destPath = path.join(destImagesTr, f);
+      const stats = await fs.stat(srcPath);
+      if (stats.isFile()) {
+        await fs.copyFile(srcPath, destPath);
+        copiedFiles.push(f);
+      }
+    }
+
+    // Update the dataset.json file in the dataset folder.
+    await updateDatasetJson(datasetDir, copiedFiles);
+
+    // Clean up the temporary folder.
+    await fs.rm(tempDir, { recursive: true, force: true });
 
     return NextResponse.json({
-      message: "File uploaded successfully",
-      fileName: file.name,
-      taskDirectory: `tasks/task_${taskNumber}`,
-      filePath,
+      message: "ZIP uploaded, training images extracted, and dataset.json updated.",
+      dataset: datasetName,
+      files: copiedFiles,
     });
   } catch (error) {
-    console.error("Error uploading file:", error);
-    return NextResponse.json(
-      { error: "Failed to upload file" },
-      { status: 500 }
-    );
+    console.error("Error processing upload:", error);
+    return NextResponse.json({ error: "Failed to process ZIP file" }, { status: 500 });
   }
 }
