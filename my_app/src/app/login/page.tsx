@@ -2,21 +2,22 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'react-hot-toast';
 import { Button as ShadButton } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [errorMessage, setErrorMessage] = useState(''); // State for error message
   const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+
     try {
-      const response = await fetch('http://localhost:5000/api/login', {
+      const response = await fetch('http://localhost:5328/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -27,14 +28,24 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (response.ok) {
+        // Clear error message on successful login
+        setErrorMessage('');
+
+        // Store token in localStorage or sessionStorage
         localStorage.setItem('token', data.token);
-        toast.success('Login successful!');
+
+        // Show success message
+        toast.success('Login successful! Redirecting to dashboard...');
+
+        // Redirect to dashboard
         router.push('/dashboard');
       } else {
-        toast.error(data.message || 'Invalid credentials');
+        // Set error message if login fails
+        setErrorMessage(data.error || 'Invalid CVAT credentials. Please try again.');
       }
     } catch (error) {
-      toast.error('Something went wrong. Please try again later.');
+      console.error("Error during login:", error); // Debugging log
+      setErrorMessage('Something went wrong. Please try again later.');
     }
   };
 
@@ -45,7 +56,7 @@ export default function LoginPage() {
       </div>
       <Card className="w-full max-w-md shadow-lg rounded-2xl bg-gray-800 backdrop-blur-md bg-opacity-90 mt-24">
         <CardHeader>
-          <CardTitle className="text-2xl text-center">Login (Use CVAT Credentials)</CardTitle>
+          <CardTitle className="text-2xl text-center">Login</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
@@ -65,6 +76,12 @@ export default function LoginPage() {
               required
               className="p-2 rounded-xl border border-gray-600 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
             />
+            {/* Display error message if credentials are invalid */}
+            {errorMessage && (
+              <div className="text-red-500 text-sm text-center">
+                {errorMessage}
+              </div>
+            )}
             <ShadButton type="submit" className="w-full bg-blue-500 text-white py-2 rounded-xl hover:bg-blue-600 transition">
               Login
             </ShadButton>
