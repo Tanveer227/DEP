@@ -8,8 +8,15 @@ def create_app():
     # Secret key for session management
     app.secret_key = "your-secret-key"
     
-    # Enable CORS for all routes and origins
-    CORS(app)
+    # Add session cookie configuration here
+    app.config.update(
+        SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SAMESITE='Lax',
+        SESSION_COOKIE_SECURE=False  # Set to True in production with HTTPS
+    )
+    
+    # Enable CORS with credentials support
+    CORS(app, supports_credentials=True)
 
     # Register authentication blueprint
     app.register_blueprint(auth_bp, url_prefix='/auth')
@@ -19,6 +26,7 @@ def create_app():
         return {'status': 'Flask backend is running'}
     
     return app
+
 
 if __name__ == '__main__':
     app = create_app()

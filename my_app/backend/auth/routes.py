@@ -23,3 +23,13 @@ def login():
     except Exception as e:
         return jsonify({'error': 'Invalid credentials. Please try again.'}), 401
 
+@auth_bp.route('/user', methods=['GET'])
+def get_user():
+    """
+    Endpoint to check if the user is authenticated.
+    """
+    token = session.get('cvat_token')
+    if not token:
+        return jsonify({'authenticated': False}), 401
+    
+    return jsonify({'authenticated': True})

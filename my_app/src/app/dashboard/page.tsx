@@ -12,7 +12,7 @@ export default function DashboardPage() {
       try {
         const response = await fetch('http://localhost:5328/auth/user', {
           method: 'GET',
-          credentials: 'include',
+          credentials: 'include',  // Important for sending cookies
         });
 
         const data = await response.json();
@@ -22,6 +22,7 @@ export default function DashboardPage() {
           router.push('/');
         }
       } catch (error) {
+        console.error('Error checking authentication:', error);
         toast.error('Error checking authentication.');
         router.push('/');
       }

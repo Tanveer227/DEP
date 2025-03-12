@@ -15,39 +15,30 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    
     try {
       const response = await fetch('http://localhost:5328/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',  // Important for storing cookies
         body: JSON.stringify({ username, password }),
       });
-
+  
       const data = await response.json();
-
+  
       if (response.ok) {
-        // Clear error message on successful login
-        setErrorMessage('');
-
-        // Store token in localStorage or sessionStorage
-        localStorage.setItem('token', data.token);
-
-        // Show success message
         toast.success('Login successful! Redirecting to dashboard...');
-
-        // Redirect to dashboard
         router.push('/dashboard');
       } else {
-        // Set error message if login fails
-        setErrorMessage(data.error || 'Invalid CVAT credentials. Please try again.');
+        setErrorMessage(data.error || 'Invalid credentials. Please try again.');
       }
     } catch (error) {
-      console.error("Error during login:", error); // Debugging log
       setErrorMessage('Something went wrong. Please try again later.');
     }
   };
+  
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-black text-white bg-[url('https://c7.alamy.com/comp/2HFJKKP/medical-background-with-mri-scan-image-of-human-head-2HFJKKP.jpg')] bg-cover bg-center">
