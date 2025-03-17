@@ -11,6 +11,14 @@ export default function DashboardPage() {
   const router = useRouter();
 
   useEffect(() => {
+    const skipAuth = localStorage.getItem("skipAuth");
+
+    if (skipAuth === "true") {
+      // Optionally, you can remove the flag once used
+      // localStorage.removeItem("skipAuth");
+      return; // Skip the authentication check
+    }
+
     const checkAuth = async () => {
       try {
         const response = await fetch('http://localhost:5328/auth/user', {
