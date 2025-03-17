@@ -22,11 +22,7 @@ export default function LoginPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-<<<<<<< HEAD
-        credentials: 'include',  // Ensures cookies are sent
-=======
         credentials: 'include', // Important for storing cookies
->>>>>>> d27e6984da143017ed9975c0f35e5a6841fcdcc6
         body: JSON.stringify({ username, password }),
       });
 
@@ -74,10 +70,7 @@ export default function LoginPage() {
               required
               className="p-2 rounded-xl border border-gray-600 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
             />
-<<<<<<< HEAD
             {/* Display error message if login fails */}
-=======
->>>>>>> d27e6984da143017ed9975c0f35e5a6841fcdcc6
             {errorMessage && (
               <div className="text-red-500 text-sm text-center">
                 {errorMessage}
