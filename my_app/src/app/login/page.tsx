@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -15,14 +15,18 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       const response = await fetch('http://localhost:5328/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+<<<<<<< HEAD
+        credentials: 'include',  // Ensures cookies are sent
+=======
         credentials: 'include', // Important for storing cookies
+>>>>>>> d27e6984da143017ed9975c0f35e5a6841fcdcc6
         body: JSON.stringify({ username, password }),
       });
 
@@ -70,6 +74,10 @@ export default function LoginPage() {
               required
               className="p-2 rounded-xl border border-gray-600 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
             />
+<<<<<<< HEAD
+            {/* Display error message if login fails */}
+=======
+>>>>>>> d27e6984da143017ed9975c0f35e5a6841fcdcc6
             {errorMessage && (
               <div className="text-red-500 text-sm text-center">
                 {errorMessage}
@@ -84,6 +92,14 @@ export default function LoginPage() {
           </form>
         </CardContent>
       </Card>
+      {process.env.NODE_ENV === "development" && (
+        <button
+          onClick={() => router.push("/dashboard")}
+          className="mt-4 text-sm text-gray-200 underline"
+        >
+          Skip Login (Dev)
+        </button>
+      )}
     </div>
   );
 }
