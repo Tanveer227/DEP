@@ -22,7 +22,7 @@ export default function LoginPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include',  // Important for storing cookies
+        credentials: 'include', // Important for storing cookies
         body: JSON.stringify({ username, password }),
       });
 
@@ -37,7 +37,6 @@ export default function LoginPage() {
         setErrorMessage(data.error || 'Invalid credentials. Please try again.');
       }
     } catch (error) {
-      console.error(error);
       setErrorMessage('Something went wrong. Please try again later.');
     }
   };
@@ -51,9 +50,7 @@ export default function LoginPage() {
       </div>
       <Card className="w-full max-w-md shadow-lg rounded-2xl bg-gray-800 backdrop-blur-md bg-opacity-90 mt-24">
         <CardHeader>
-          <div className="text-2xl text-center">
-            <CardTitle>Login</CardTitle>
-          </div>
+          <CardTitle className="text-2xl text-center">Login</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
@@ -73,7 +70,7 @@ export default function LoginPage() {
               required
               className="p-2 rounded-xl border border-gray-600 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
             />
-            {/* Display error message if credentials are invalid */}
+            {/* Display error message if login fails */}
             {errorMessage && (
               <div className="text-red-500 text-sm text-center">
                 {errorMessage}
@@ -89,16 +86,16 @@ export default function LoginPage() {
         </CardContent>
       </Card>
       {process.env.NODE_ENV === "development" && (
-        <button
-          onClick={() => {
+          <button
+        onClick={() => {
             localStorage.setItem("skipAuth", "true");
-            router.push("/dashboard");
+          router.push("/dashboard");
           }}
-          className="mt-4 text-sm text-gray-200 underline"
-        >
-          Skip Login (Dev)
-        </button>
-      )}
+    className="mt-4 text-sm text-gray-200 underline"
+  >
+    Skip Login (Dev)
+</button>
+)}
     </div>
   );
 }
