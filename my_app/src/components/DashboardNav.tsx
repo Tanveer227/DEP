@@ -44,14 +44,14 @@ export default function DashboardNav() {
             Your Upload
           </Link>
           <Link
-            href="/corrected"
+            href="/predictions"
             className={`px-4 py-2 text-lg font-medium ${
               isActive("/corrected")
                 ? "text-blue-900 border-b-2 border-blue-900"
                 : "text-white hover:text-blue-200"
             }`}
           >
-            Corrected
+            Predictions
           </Link>
         </div>
       </div>

@@ -51,7 +51,7 @@ export default function YourUploadPage() {
     <div className="min-h-screen bg-gray-200">
       <DashboardNav />
       <main className="max-w-7xl mx-auto p-6">
-        <h2 className="text-2xl font-bold mb-4 text-black">Your Uploads</h2>
+        <h2 className="text-2xl font-bold mb-4 text-black">Predictions</h2>
         <div className="bg-white shadow rounded p-4">
           <ul>
             {folders.map((folder) => (
