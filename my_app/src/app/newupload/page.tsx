@@ -10,10 +10,14 @@ export default function NewUploadPage() {
   const [config, setConfig] = useState<"2d" | "3d_fullres">("3d_fullres");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
     const skipAuth = localStorage.getItem("skipAuth");
-    if (skipAuth === "true") return;
+    if (skipAuth === "true") {
+      setIsAuthenticated(true);
+      return;
+    }
     
     const checkAuth = async () => {
       try {
@@ -21,21 +25,41 @@ export default function NewUploadPage() {
           method: "GET",
           credentials: "include",
         });
+        
+        if (!response.ok) {
+          throw new Error("Authentication failed");
+        }
+        
         const data = await response.json();
         if (!data.authenticated) {
           toast.error("Please log in first.");
-          router.push("/");
+          router.push("/login");
+          return;
         }
+        
+        // Store username if not already stored
+        if (data.user && data.user.username) {
+          localStorage.setItem("username", data.user.username);
+        }
+        
+        setIsAuthenticated(true);
       } catch (error) {
         console.error("Error checking authentication:", error);
         toast.error("Authentication check failed");
-        router.push("/");
+        router.push("/login");
       }
     };
+    
     checkAuth();
   }, [router]);
 
   const handleSubmit = async () => {
+    if (!isAuthenticated) {
+      toast.error("Please log in first");
+      router.push("/login");
+      return;
+    }
+
     if (!selectedFile) {
       toast.error("Please select a file to upload");
       return;
@@ -44,7 +68,7 @@ export default function NewUploadPage() {
     const username = localStorage.getItem("username");
     if (!username) {
       toast.error("User not found. Please log in again.");
-      router.push("/");
+      router.push("/login");
       return;
     }
 
@@ -59,7 +83,18 @@ export default function NewUploadPage() {
       const uploadResponse = await fetch("http://localhost:5328/inference/upload", {
         method: "POST",
         body: formData,
+        credentials: "include",
       });
+
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json();
+        if (uploadResponse.status === 401) {
+          toast.error("Session expired. Please log in again.");
+          router.push("/login");
+          return;
+        }
+        throw new Error(errorData.error || "Upload failed");
+      }
 
       const uploadData = await uploadResponse.json();
       if (!uploadData.success) throw new Error(uploadData.error);
@@ -67,12 +102,25 @@ export default function NewUploadPage() {
       // Then run inference
       const inferenceResponse = await fetch("http://localhost:5328/inference/run", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json"
+        },
+        credentials: "include",
         body: JSON.stringify({
           job_id: uploadData.job_id,
           config: uploadData.config
         }),
       });
+
+      if (!inferenceResponse.ok) {
+        const errorData = await inferenceResponse.json();
+        if (inferenceResponse.status === 401) {
+          toast.error("Session expired. Please log in again.");
+          router.push("/login");
+          return;
+        }
+        throw new Error(errorData.error || "Inference failed");
+      }
 
       // Handle result download
       const blob = await inferenceResponse.blob();
@@ -94,6 +142,10 @@ export default function NewUploadPage() {
       setIsProcessing(false);
     }
   };
+
+  if (!isAuthenticated) {
+    return null; // Don't render anything while checking authentication
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-100 to-gray-200">
