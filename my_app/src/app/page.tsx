@@ -1,20 +1,29 @@
-import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
+'use client';
 
-export default async function Home() {
-  // 1. Attempt to read a cookie named "token" (or whatever you use).
-  const token = (await cookies()).get('token');
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
-  // 2. If no token, redirect to the login page.
-  if (!token) {
-    redirect('/login');
-  }
+export default function Home() {
+  const router = useRouter();
 
-  // 3. If token exists, render the home page.
+  useEffect(() => {
+    // Check if user is authenticated (has token in localStorage)
+    const token = localStorage.getItem('token');
+    const username = localStorage.getItem('username');
+
+    if (token && username) {
+      // If authenticated, redirect to dashboard
+      router.push('/dashboard');
+    } else {
+      // If not authenticated, redirect to login
+      router.push('/login');
+    }
+  }, [router]);
+
+  // Return null or loading state while redirecting
   return (
-    <div>
-      <h1>Welcome to the Home Page</h1>
-      <p>You are authenticated!</p>
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
     </div>
   );
 }
