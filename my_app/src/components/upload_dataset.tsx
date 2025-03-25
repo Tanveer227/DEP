@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Upload, FileText, X, AlertCircle, ImageIcon } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -18,7 +18,29 @@ const MedicalFileUploadDashboard: React.FC = () => {
   const [files, setFiles] = useState<FileDetails[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch existing uploads when component mounts
+  useEffect(() => {
+    fetchUploads();
+  }, []);
+
+  const fetchUploads = async () => {
+    try {
+      const username = localStorage.getItem('username'); // Assuming username is stored after login
+      if (!username) return;
+
+      const response = await fetch(`http://localhost:5328/uploads/uploads?username=${username}`);
+      if (!response.ok) throw new Error('Failed to fetch uploads');
+      
+      const data = await response.json();
+      setFiles(data.uploads);
+    } catch (err) {
+      console.error('Error fetching uploads:', err);
+      setError('Failed to load existing uploads');
+    }
+  };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -29,19 +51,19 @@ const MedicalFileUploadDashboard: React.FC = () => {
     setIsDragging(false);
   };
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(false);
     const droppedFile = e.dataTransfer.files[0];
-    validateAndAddFile(droppedFile);
+    await validateAndAddFile(droppedFile);
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
-    validateAndAddFile(selectedFile);
+    await validateAndAddFile(selectedFile);
   };
 
-  const validateAndAddFile = (file?: File) => {
+  const validateAndAddFile = async (file?: File) => {
     setError('');
     
     if (!file) {
@@ -54,35 +76,77 @@ const MedicalFileUploadDashboard: React.FC = () => {
       return;
     }
 
-    addFile(file);
+    await uploadFile(file);
   };
 
-  const addFile = (file: File) => {
-    const newFile: FileDetails = {
-      name: file.name,
-      size: formatFileSize(file.size),
-      timestamp: new Date().toLocaleString(),
-      studyId: generateStudyId(),
-      status: 'Validating',
-      type: detectFileType(file.name),
-      estimatedImages: Math.floor(Math.random() * 50) + 1
-    };
+  const uploadFile = async (file: File) => {
+    setIsUploading(true);
+    setError('');
 
-    setFiles(prevFiles => [...prevFiles, newFile]);
+    try {
+      const username = localStorage.getItem('username');
+      if (!username) {
+        setError('User not authenticated');
+        return;
+      }
 
-    setTimeout(() => {
-      setFiles(prevFiles => 
-        prevFiles.map(f => 
-          f.name === file.name 
-            ? { ...f, status: 'Ready for Processing' }
-            : f
-        )
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('username', username);
+
+      const response = await fetch('http://localhost:5328/uploads/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Upload failed');
+      }
+
+      const data = await response.json();
+      
+      // Add the new file to the list
+      setFiles(prevFiles => [...prevFiles, {
+        name: data.upload.file_name,
+        size: data.upload.size,
+        timestamp: data.upload.created_at,
+        studyId: data.upload._id,
+        status: data.upload.status,
+        type: data.upload.type,
+        estimatedImages: 0
+      }]);
+
+    } catch (err) {
+      console.error('Upload error:', err);
+      setError(err instanceof Error ? err.message : 'Upload failed');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const removeFile = async (studyId: string) => {
+    try {
+      const username = localStorage.getItem('username');
+      if (!username) {
+        setError('User not authenticated');
+        return;
+      }
+
+      const response = await fetch(
+        `http://localhost:5328/uploads/uploads/${studyId}?username=${username}`,
+        { method: 'DELETE' }
       );
-    }, 2000);
-  };
 
-  const removeFile = (index: number) => {
-    setFiles(prevFiles => prevFiles.filter((_, i) => i !== index));
+      if (!response.ok) {
+        throw new Error('Failed to delete file');
+      }
+
+      setFiles(prevFiles => prevFiles.filter(f => f.studyId !== studyId));
+    } catch (err) {
+      console.error('Delete error:', err);
+      setError('Failed to delete file');
+    }
   };
 
   const formatFileSize = (bytes: number) => {
@@ -91,16 +155,6 @@ const MedicalFileUploadDashboard: React.FC = () => {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
-  const generateStudyId = () => {
-    return 'STD' + Math.random().toString(36).substr(2, 6).toUpperCase();
-  };
-
-  const detectFileType = (filename: string) => {
-    if (filename.toLowerCase().includes('nifti')) return 'NIfTI Archive';
-    if (filename.toLowerCase().includes('png')) return 'PNG Archive';
-    return 'Mixed Archive';
   };
 
   return (
@@ -129,14 +183,17 @@ const MedicalFileUploadDashboard: React.FC = () => {
           <div
             className={`border-2 border-dashed rounded-lg p-8 text-center mb-6 cursor-pointer
               ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}
-              hover:border-blue-500 hover:bg-blue-50 transition-colors`}
+              ${isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:border-blue-500 hover:bg-blue-50'}
+              transition-colors`}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => !isUploading && fileInputRef.current?.click()}
           >
             <Upload className="w-12 h-12 mx-auto mb-4 text-blue-500" />
-            <p className="text-lg mb-2 font-medium text-gray-700">Upload Image Archive</p>
+            <p className="text-lg mb-2 font-medium text-gray-700">
+              {isUploading ? 'Uploading...' : 'Upload Image Archive'}
+            </p>
             <p className="text-sm text-gray-500">ZIP files containing PNG or NIfTI images</p>
             <p className="text-xs text-gray-400 mt-2">Maximum size: 500MB</p>
             <input
@@ -145,6 +202,7 @@ const MedicalFileUploadDashboard: React.FC = () => {
               accept=".zip"
               className="hidden"
               onChange={handleFileSelect}
+              disabled={isUploading}
             />
           </div>
 
@@ -152,8 +210,8 @@ const MedicalFileUploadDashboard: React.FC = () => {
             <div className="space-y-4">
               <h3 className="font-medium text-gray-700">Uploaded Archives</h3>
               <div className="divide-y">
-                {files.map((file, index) => (
-                  <div key={`${file.name}-${index}`} className="py-4 hover:bg-gray-50 rounded-lg transition-colors">
+                {files.map((file) => (
+                  <div key={file.studyId} className="py-4 hover:bg-gray-50 rounded-lg transition-colors">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         <div className="bg-blue-100 p-2 rounded-lg">
@@ -162,9 +220,14 @@ const MedicalFileUploadDashboard: React.FC = () => {
                         <div>
                           <p className="font-medium text-gray-900">{file.name}</p>
                           <p className="text-sm text-gray-500">Study ID: {file.studyId}</p>
+                          <p className="text-sm text-gray-500">Status: {file.status}</p>
                         </div>
                       </div>
-                      <button onClick={() => removeFile(index)} className="p-2 hover:bg-gray-200 rounded-full">
+                      <button 
+                        onClick={() => removeFile(file.studyId)}
+                        className="p-2 hover:bg-gray-200 rounded-full"
+                        disabled={isUploading}
+                      >
                         <X className="w-5 h-5 text-gray-500" />
                       </button>
                     </div>
