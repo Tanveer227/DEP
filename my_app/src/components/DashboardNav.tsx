@@ -34,14 +34,14 @@ export default function DashboardNav() {
             New Upload
           </Link>
           <Link
-            href="/yourupload"
+            href="/predictions"
             className={`px-4 py-2 text-lg font-medium ${
               isActive("/yourupload")
                 ? "text-blue-900 border-b-2 border-blue-900"
                 : "text-white hover:text-blue-200"
             }`}
           >
-            Your Upload
+            Predictions
           </Link>
           <Link
             href="/corrected"
