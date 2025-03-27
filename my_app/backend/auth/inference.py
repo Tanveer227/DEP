@@ -3,6 +3,8 @@ from flask import Blueprint, request, jsonify, current_app, send_file
 from werkzeug.utils import secure_filename
 import os
 import uuid
+import tempfile
+import requests
 from datetime import datetime
 from .database import (
     create_upload,
@@ -145,4 +147,38 @@ def get_status(job_id):
         'status': upload['status'],
         'config': upload['config'],
         'created_at': upload['created_at'].isoformat()
-    }) 
+    })
+
+def download_cvat_annotations(task_id: str, cvat_server: str = "http://localhost:5000", export_format: str = 'CVAT') -> tuple:
+    """
+    Download annotations from CVAT server.
+    """
+    if not task_id:
+        return jsonify({"error": "The 'task_id' parameter is required."}), 400
+
+    url = f"{cvat_server}/api/tasks/{task_id}/annotations?format={export_format}"
+
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+
+        temp_folder = tempfile.mkdtemp(prefix="cvat_download_")
+        file_name = f"task_{task_id}_annotations.xml"
+        file_path = os.path.join(temp_folder, file_name)
+
+        with open(file_path, "wb") as f:
+            f.write(response.content)
+
+        return send_file(file_path, as_attachment=True, download_name=file_name), 200
+    
+    except requests.HTTPError as http_err:
+        return jsonify({"error": f"HTTP error occurred: {str(http_err)}"}), 500
+    except Exception as err:
+        return jsonify({"error": f"An error occurred: {str(err)}"}), 500
+
+@inference_bp.route('/download-cvat-annotations', methods=['GET'])
+def get_cvat_annotations():
+    task_id = request.args.get('task_id')
+    export_format = request.args.get('format', 'CVAT')
+    cvat_server = current_app.config.get('CVAT_SERVER_URL', 'http://localhost:5000')
+    return download_cvat_annotations(task_id, cvat_server, export_format) 
