@@ -1,38 +1,28 @@
-<<<<<<< HEAD
-from flask import Flask
-from flask_cors import CORS
-from config import Config
-import os
-=======
-# backend/app.py (UPDATED)
-from flask import Flask
+# backend/app.py
+from flask import Flask, jsonify
 from flask_cors import CORS
 from config import Config
 from auth.database import init_db
->>>>>>> da945fa98600bcb8ec754254fe533daba817eb8f
+import os
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
     
-<<<<<<< HEAD
-    # Create temp directories
-    os.makedirs('temp_uploads', exist_ok=True)
-    os.makedirs('temp_results', exist_ok=True)
-
-    # Enhanced CORS configuration
-=======
-    # Add configuration to ignore uploads directory for reloading
+    # Add configuration for uploads and predictions directories
     app.config['UPLOAD_FOLDER'] = 'uploads'
+    app.config['PREDICTIONS_FOLDER'] = 'predictions'
     app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
-    if app.debug:
-        import os
-        extra_dirs = [os.path.join(app.root_path, 'uploads')]
-        app.config['EXTRA_FILES'] = extra_dirs
-        app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'uploads')
     
-    # Explicit CORS configuration
->>>>>>> da945fa98600bcb8ec754254fe533daba817eb8f
+    # Configure debug mode file watching
+    if app.debug:
+        extra_dirs = [
+            os.path.join(app.root_path, 'uploads'),
+            os.path.join(app.root_path, 'predictions')
+        ]
+        app.config['EXTRA_FILES'] = extra_dirs
+    
+    # Enhanced CORS configuration
     CORS(app, supports_credentials=True, resources={
         r"/auth/*": {
             "origins": "http://localhost:3000",
@@ -41,37 +31,47 @@ def create_app():
         },
         r"/inference/*": {
             "origins": "http://localhost:3000",
-<<<<<<< HEAD
-            "methods": ["POST", "OPTIONS"],
-            "allow_headers": ["Content-Type"]
-        }
-    })
-
-    # Register blueprints
-    with app.app_context():
-        from auth.routes import auth_bp
-        from inference.routes import inference_bp
-        
-        app.register_blueprint(auth_bp, url_prefix='/auth')
-        app.register_blueprint(inference_bp, url_prefix='/inference')
-
-=======
             "methods": ["GET", "POST", "DELETE", "OPTIONS"],
             "allow_headers": ["Content-Type"]
+        },
+        r"/api/predictions": {
+            "origins": "http://localhost:3000",
+            "methods": ["GET"],
+            "allow_headers": ["Content-Type"]
         }
     })
     
-    # Initialize MongoDB
+    # Initialize MongoDB (if applicable)
     init_db(app)
     
-    # Import and register blueprints
+    # Register blueprints
     with app.app_context():
         from auth.routes import auth_bp
         from auth.inference import inference_bp
         app.register_blueprint(auth_bp, url_prefix='/auth')
         app.register_blueprint(inference_bp, url_prefix='/inference')
-    
->>>>>>> da945fa98600bcb8ec754254fe533daba817eb8f
+
+    # New prediction folders endpoint
+    @app.route('/api/predictions', methods=['GET'])
+    def get_prediction_folders():
+        try:
+            predictions_path = os.path.join(app.root_path, app.config['PREDICTIONS_FOLDER'])
+            if not os.path.exists(predictions_path):
+                os.makedirs(predictions_path)
+                return jsonify({"folders": []})
+
+            folders = []
+            with os.scandir(predictions_path) as entries:
+                for entry in entries:
+                    if entry.is_dir() and not entry.name.startswith('.'):
+                        folders.append(entry.name)
+            
+            return jsonify({"folders": sorted(folders)})
+        
+        except Exception as e:
+            app.logger.error(f"Error fetching prediction folders: {str(e)}")
+            return jsonify({"error": "Failed to retrieve prediction folders"}), 500
+
     @app.route('/')
     def index():
         return {'status': 'Flask backend is running'}
@@ -80,8 +80,4 @@ def create_app():
 
 if __name__ == '__main__':
     app = create_app()
-<<<<<<< HEAD
-    app.run(host='127.0.0.1', port=5328, debug=True)
-=======
     app.run(host='127.0.0.1', port=5328, debug=True, extra_files=app.config.get('EXTRA_FILES', None))
->>>>>>> da945fa98600bcb8ec754254fe533daba817eb8f
