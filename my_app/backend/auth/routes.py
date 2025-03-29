@@ -1,5 +1,5 @@
-# backend/auth/routes.py (UPDATED)
 from flask import Blueprint, request, jsonify, session
+from bson.objectid import ObjectId  # Import ObjectId for serialization
 from .cvat_auth import authenticate_with_cvat
 from .database import (
     get_users_collection,
@@ -11,6 +11,18 @@ from .database import (
 import bcrypt
 
 auth_bp = Blueprint('auth', __name__)
+
+def serialize_objectid(data):
+    """
+    Helper function to convert ObjectId to string recursively in a dictionary.
+    """
+    if isinstance(data, dict):
+        return {key: serialize_objectid(value) for key, value in data.items()}
+    elif isinstance(data, list):
+        return [serialize_objectid(item) for item in data]
+    elif isinstance(data, ObjectId):
+        return str(data)
+    return data
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
@@ -79,13 +91,13 @@ def get_user():
     if not user:
         return jsonify({'authenticated': False}), 401
     
-    # Remove sensitive information
+    # Serialize ObjectId and remove sensitive information
     user.pop('password', None)
-    user.pop('_id', None)
+    serialized_user = serialize_objectid(user)
     
     return jsonify({
         'authenticated': True,
-        'user': user
+        'user': serialized_user
     })
 
 @auth_bp.route('/logout', methods=['POST'])

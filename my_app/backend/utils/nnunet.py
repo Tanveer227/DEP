@@ -1,18 +1,27 @@
 import subprocess
 import os
 import logging
+import zipfile
 
-def run_inference_pipeline(nifti_path: str, output_dir: str, config: str) -> str:
+def run_inference_pipeline(nifti_path: str, output_dir: str, config: str, job_id:str) -> str:
     """Run nnUNet inference on a NIfTI file."""
     try:
-        predictions_dir = os.path.join(output_dir, 'predictions')
-        os.makedirs(predictions_dir, exist_ok=True)
+        print(f"Checking input file: {nifti_path}")
+        print(f"Absolute path: {os.path.abspath(nifti_path)}")
+        print(f"File exists? {os.path.exists(nifti_path)}")
+        print(f"Output directory: {output_dir}")
+
+        # Ensure nnUNet environment variables are set
+        env = os.environ.copy()
+        env["NNUNET_RAW_DATA_BASE"] = os.getenv("NNUNET_RAW_DATA_BASE", "~/Development/DEP_electrical/nnUNet_raw")
+        env["NNUNET_PREPROCESSED"] = os.getenv("NNUNET_PREPROCESSED", ".~/Development/DEP_electrical/nnUNet_preprocessed")
+        env["NNUNET_RESULTS_FOLDER"] = os.getenv("NNUNET_RESULTS_FOLDER", "~/Development/DEP_electrical/nnUNet_results")
 
         command = [
             'nnUNetv2_predict',
             '-i', nifti_path,
-            '-o', predictions_dir,
-            '-d', 'Dataset999',  # Replace with the correct trained model ID
+            '-o', output_dir,
+            '-d', 'Dataset001_BrainTumour',  # Replace with the correct trained model ID
             '-c', config,
             '-f', 'all',
             '--disable_tta'
@@ -23,17 +32,13 @@ def run_inference_pipeline(nifti_path: str, output_dir: str, config: str) -> str
             check=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            text=True
+            text=True,
+            env=env  # Pass the updated environment
         )
 
         logging.info(f"Inference completed: {result.stdout}")
 
-        # Path to segmentation result
-        result_path = os.path.join(predictions_dir, 'volume_seg.nii.gz')
-        if not os.path.exists(result_path):
-            raise FileNotFoundError("Segmentation output not generated.")
-
-        return result_path
+        return output_dir
 
     except subprocess.CalledProcessError as e:
         error_msg = f"Inference failed: {e.stderr}"
