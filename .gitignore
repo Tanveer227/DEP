@@ -4,3 +4,5 @@ my_app/backend/predictions/OUTPUT_FOLDER
 my_app/backend/__pycache__
 my_app/backend/__pycache__/config.cpython-313.pyc
 my_app/backend/auth/__pycache__/routes.cpython-313.pyc
+my_app/backend/temp_uploads
+my_app/backend/temp_results
