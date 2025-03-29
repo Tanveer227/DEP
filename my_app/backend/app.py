@@ -27,12 +27,10 @@ def create_app():
     # Register blueprints
     with app.app_context():
         from auth.routes import auth_bp
-        from inference.routes import inference_bp
-        from temp_results.routes import temp_results_bp  # Import temp_results routes
+        from inference.routes import inference_bp  # Inference now handles temp_results functionality
 
         app.register_blueprint(auth_bp, url_prefix='/auth')
         app.register_blueprint(inference_bp, url_prefix='/inference')
-        app.register_blueprint(temp_results_bp, url_prefix='/api/temp_results')  # Register temp_results blueprint
 
     @app.route('/')
     def index():

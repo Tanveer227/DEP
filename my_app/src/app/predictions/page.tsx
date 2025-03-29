@@ -41,15 +41,17 @@ export default function YourUploadPage() {
   useEffect(() => {
     const fetchFolders = async () => {
       try {
-        const response = await fetch('http://localhost:5328/api/temp_results', {
+        const response = await fetch('http://localhost:5328/inference/temp_results', {
           method: 'GET',
           credentials: 'include',
         });
-        if (!response.ok) {
-          throw new Error('Failed to fetch folders');
-        }
         const data = await response.json();
-        setFolders(data.folders);
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || 'Failed to fetch folders');
+        }
+        
+        setFolders(data.folders || []);
       } catch (error) {
         console.error('Error fetching folders:', error);
         toast.error('Failed to load folders');

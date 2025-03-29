@@ -90,8 +90,8 @@ def handle_inference():
 @inference_bp.route('/temp_results', methods=['GET'])
 def get_temp_results():
     if not os.path.exists(TEMP_RESULTS_PATH):
-        return jsonify({'error': f'Directory not found: {TEMP_RESULTS_PATH}'}), 404
+        return jsonify({'success': False, 'error': f'Directory not found: {TEMP_RESULTS_PATH}'}), 404
 
     folder_names = [f for f in os.listdir(TEMP_RESULTS_PATH) if os.path.isdir(os.path.join(TEMP_RESULTS_PATH, f))]
 
-    return jsonify(folder_names)
+    return jsonify({'success': True, 'folders': folder_names})
