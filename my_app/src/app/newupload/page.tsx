@@ -77,7 +77,7 @@ export default function NewUploadPage() {
       formData.append("file", selectedFile);
       formData.append("config", config);
       formData.append("username", username);
-
+  
       const uploadResponse = await fetch("http://localhost:5328/inference/upload", {
         method: "POST",
         body: formData,
@@ -105,7 +105,8 @@ export default function NewUploadPage() {
         credentials: "include",
         body: JSON.stringify({
           job_id: uploadData.job_id,
-          config: uploadData.config
+          config: uploadData.config,
+          inference_dir: uploadData.inference_dir  // Pass the inference directory
         }),
       });
 

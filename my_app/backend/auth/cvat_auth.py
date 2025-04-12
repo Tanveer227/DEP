@@ -1,3 +1,4 @@
+#backend/auth/cvat_auth.py
 import requests
 
 def authenticate_with_cvat(username, password):
