@@ -1,0 +1,6 @@
+{
+    "task_id": 1329979,
+    "task_name": "Medical Scan - FOLDER_1_BRATS_004",
+    "nifti_id": "INPUT_FOLDER_1_BRATS_004.nii.gz",
+    "dataset_type": "Dataset001_BrainTumour"
+}

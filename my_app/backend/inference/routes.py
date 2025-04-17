@@ -26,12 +26,19 @@ def handle_upload():
         file = request.files['file']
         config = request.form.get('config', '3d_fullres')
         username = request.form.get('username')
-        
+        print(file)
+        file = request.files['file']
+        filename = file.filename  # e.g., "image_01.nii.gz"
+
+        # Remove all extensions (including double ones like .nii.gz)
+        name_without_ext = os.path.splitext(filename)[0]  # removes only ".gz"
+        if name_without_ext.endswith('.nii'):
+            name_without_ext = os.path.splitext(name_without_ext)[0]  # removes ".nii"
         if config not in ['2d', '3d_fullres']:
             return jsonify({'success': False, 'error': 'Invalid config'}), 400
 
         # Generate a unique job ID 
-        job_id = str(uuid.uuid4())
+        job_id = name_without_ext
         
         # Save the uploaded ZIP file temporarily
         zip_path = os.path.join(TEMP_UPLOADS_PATH, f'{job_id}.zip')
@@ -40,6 +47,7 @@ def handle_upload():
         # Process the upload and get paths
         try:
             result = process_upload(zip_path, TEMP_UPLOADS_PATH)
+            print("processed")
             if username:
                 result['username'] = username
         except ValueError as e:
@@ -123,7 +131,7 @@ def handle_inference():
                     os.makedirs(png_output_dir, exist_ok=True)
                     
                     # Convert NIfTI to PNG slices
-                    nifti_to_png_slices(src_path, png_output_dir)
+                    nifti_to_png_slices(src_path, png_output_dir, True, True)
         
         # Clean up the temporary directory
         shutil.rmtree(temp_output_dir)
