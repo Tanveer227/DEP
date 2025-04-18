@@ -54,7 +54,7 @@ def create_app():
         from inference.routes import inference_bp   # Inference now handles temp_results functionality
         from cvat.routes import cvat_bp
         from nnunet.routes import nnunet_bp
-        app.register_blueprint(nnunet_bp, url_prefix='/nnunet')
+        app.register_blueprint(nnunet_bp)
         app.register_blueprint(auth_bp, url_prefix='/auth')
         app.register_blueprint(inference_bp, url_prefix='/inference')
         app.register_blueprint(cvat_bp, url_prefix='/cvat')

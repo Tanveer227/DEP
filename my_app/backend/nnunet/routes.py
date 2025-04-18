@@ -1,79 +1,72 @@
 import os
 import subprocess
-from flask import Blueprint, current_app, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 
-nnunet_bp = Blueprint('nnunet', __name__, url_prefix='/nnunet')
+nnunet_bp = Blueprint('nnunet', __name__)
 
 @nnunet_bp.route('/train-nnunet', methods=['POST'])
 def train_nnunet():
     """
-    Expects a JSON payload:
+    Expects JSON:
     {
-        "resolution": "2d" OR "3d" OR "3d_fullres",
-        "fold": <fold_number>
+      "dataset_id": <int>,            # e.g. 1 for Dataset001_BrainTumour, 2 for Dataset002_Heart
+      "resolution": "2d"|"3d"|"3d_fullres",
+      "folds": <int> or "all",
+      "trainer_class": "<string>"     # optional, e.g. "nnUNetTrainer_1epoch"
     }
-    
-    This endpoint runs the nnUNet preprocessing and one-epoch training commands.
-    It uses the dataset "Dataset001_BrainTumor" (hardcoded) and nnUNetV2 trainers.
+    Runs nnUNetv2_plan_and_preprocess and then nnUNetv2_train for one epoch.
     """
+    data = request.get_json() or {}
+    dataset_id    = data.get("dataset_id")
+    resolution    = data.get("resolution", "3d_fullres")
+    folds         = data.get("folds", "all")
+    trainer_class = data.get("trainer_class", "nnUNetTrainer_1epoch")
+
+    # Validate
+    if not isinstance(dataset_id, int):
+        return jsonify({"error": "dataset_id (integer) is required"}), 400
+    if resolution not in ("2d", "3d", "3d_fullres"):
+        return jsonify({"error": "resolution must be one of 2d, 3d, 3d_fullres"}), 400
+
+    # build fold list
+    if folds == "all":
+        fold_list = ["all"]
+    else:
+        try:
+            fold_list = [str(int(folds))]
+        except:
+            return jsonify({"error": "folds must be an integer or 'all'"}), 400
+
+    cwd = os.path.abspath(os.getcwd())
+
     try:
-        data = request.get_json()
-        resolution = data.get("resolution", "3d_fullres")
-        fold = int(data.get("fold", 0))
-        
-        if resolution not in ["2d", "3d", "3d_fullres"]:
-            return jsonify({"error": "Unsupported resolution. Choose from 2d, 3d, 3d_fullres."}), 400
-        
-        # Hardcoded dataset name as requested.
-        dataset = "Dataset001_BrainTumor"
-        
-        # Determine current working directory as the base directory for running commands.
-        base_dir = os.path.abspath("")
-        
-        # ----------------- Preprocessing -----------------
-        # Build the preprocessing command.
-        # Here we pass the resolution (which nnUNet_plan_and_preprocess accepts as planning mode).
-        preprocess_command = [
-            "nnUNet_plan_and_preprocess",
-            "-t", dataset,
-            "-pl", resolution
+        # 1) Preprocessing
+        preprocess_cmd = [
+            "nnUNetv2_plan_and_preprocess",
+            "-d", str(dataset_id)      # dataset ID is integer :contentReference[oaicite:0]{index=0}
         ]
-        current_app.logger.info("Running preprocessing: %s in %s", " ".join(preprocess_command), base_dir)
-        subprocess.run(preprocess_command, check=True, cwd=base_dir)
-        
-        # ----------------- Training -----------------
-        # Map the resolution to the appropriate network/trainer parameters.
-        if resolution == "2d":
-            network = "2d"
-            trainer = "nnUNetTrainerV2_2D"
-        elif resolution == "3d":
-            network = "3d_lowres"
-            trainer = "nnUNetTrainerV2"
-        else:  # resolution == "3d_fullres"
-            network = "3d_fullres"
-            trainer = "nnUNetTrainerV2"
-        
-        # Build the training command to run a one-epoch training run.
-        # The command pattern is:
-        #    nnUNet_train <network> <trainer> <task> <fold> --max_epochs 1
-        train_command = [
-            "nnUNet_train",
-            network,
-            trainer,
-            dataset,
-            str(fold),
-            "--max_epochs",
-            "1"
-        ]
-        current_app.logger.info("Running training: %s in %s", " ".join(train_command), base_dir)
-        subprocess.run(train_command, check=True, cwd=base_dir)
-        
+        current_app.logger.info("Running preprocess: %s", " ".join(preprocess_cmd))
+        subprocess.run(preprocess_cmd, check=True, cwd=cwd)  # :contentReference[oaicite:1]{index=1}
+
+        # 2) Training each fold (one epoch via trainer_class)
+        for fold in fold_list:
+            train_cmd = [
+                "nnUNetv2_train",
+                str(dataset_id),
+                resolution,
+                fold,
+                "-tr", trainer_class
+            ]
+            current_app.logger.info("Running train: %s", " ".join(train_cmd))
+            subprocess.run(train_cmd, check=True, cwd=cwd)
+
         return jsonify({
-            "message": f"Training completed for dataset {dataset}, resolution {resolution}, fold {fold} (1 epoch)."
+            "message": f"nnU‑Net V2 run for dataset {dataset_id}, res {resolution}, folds {fold_list}"
         }), 200
-    except subprocess.CalledProcessError as cpe:
-        current_app.logger.error("Subprocess error during training: %s", str(cpe))
-        return jsonify({"error": f"Subprocess error: {str(cpe)}"}), 500
+
+    except subprocess.CalledProcessError as e:
+        current_app.logger.error("Subprocess error: %s", str(e))
+        return jsonify({"error": str(e)}), 500
     except Exception as e:
-        current_app.logger.error("Unexpected error in training: %s", str(e))
+        current_app.logger.error("Unexpected error: %s", str(e))
         return jsonify({"error": str(e)}), 500

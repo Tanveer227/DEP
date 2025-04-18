@@ -308,53 +308,6 @@ export default function NewUploadPage() {
                   </div>
                 </div>
               </div>
-              {/* Scan Configuration */}
-              <div className="mb-8">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                  <Database className="h-5 w-5 mr-2 text-blue-600" />
-                  Scan Configuration
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div 
-                    className={`cursor-pointer border-2 rounded-lg p-4 transition ${
-                      config === "2d" 
-                        ? "border-blue-500 bg-blue-50"
-                        : "border-gray-200 hover:border-gray-300"
-                    }`}
-                    onClick={() => setConfig("2d")}
-                  >
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0 h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                        <span className="font-bold text-blue-600">2D</span>
-                      </div>
-                      <div className="ml-4">
-                        <h4 className="font-medium text-gray-900">2D Slice Collection</h4>
-                        <p className="text-sm text-gray-500">Analysis of individual 2D slices</p>
-                      </div>
-                      {config === "2d" && <Check className="ml-auto h-5 w-5 text-blue-600" />}
-                    </div>
-                  </div>
-                  <div 
-                    className={`cursor-pointer border-2 rounded-lg p-4 transition ${
-                      config === "3d_fullres" 
-                        ? "border-blue-500 bg-blue-50"
-                        : "border-gray-200 hover:border-gray-300"
-                    }`}
-                    onClick={() => setConfig("3d_fullres")}
-                  >
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0 h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                        <span className="font-bold text-blue-600">3D</span>
-                      </div>
-                      <div className="ml-4">
-                        <h4 className="font-medium text-gray-900">3D Volume (High Resolution)</h4>
-                        <p className="text-sm text-gray-500">Full volumetric analysis</p>
-                      </div>
-                      {config === "3d_fullres" && <Check className="ml-auto h-5 w-5 text-blue-600" />}
-                    </div>
-                  </div>
-                </div>
-              </div>
               {/* File Upload */}
               <div className="mb-8">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
@@ -409,6 +362,53 @@ export default function NewUploadPage() {
                       </button>
                     </div>
                   )}
+                </div>
+              </div>
+              {/* Scan Configuration */}
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                  <Database className="h-5 w-5 mr-2 text-blue-600" />
+                  Scan Configuration
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div 
+                    className={`cursor-pointer border-2 rounded-lg p-4 transition ${
+                      config === "2d" 
+                        ? "border-blue-500 bg-blue-50"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                    onClick={() => setConfig("2d")}
+                  >
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0 h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                        <span className="font-bold text-blue-600">2D</span>
+                      </div>
+                      <div className="ml-4">
+                        <h4 className="font-medium text-gray-900">2D Slice Collection</h4>
+                        <p className="text-sm text-gray-500">Analysis of individual 2D slices</p>
+                      </div>
+                      {config === "2d" && <Check className="ml-auto h-5 w-5 text-blue-600" />}
+                    </div>
+                  </div>
+                  <div 
+                    className={`cursor-pointer border-2 rounded-lg p-4 transition ${
+                      config === "3d_fullres" 
+                        ? "border-blue-500 bg-blue-50"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                    onClick={() => setConfig("3d_fullres")}
+                  >
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0 h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                        <span className="font-bold text-blue-600">3D</span>
+                      </div>
+                      <div className="ml-4">
+                        <h4 className="font-medium text-gray-900">3D Volume (High Resolution)</h4>
+                        <p className="text-sm text-gray-500">Full volumetric analysis</p>
+                      </div>
+                      {config === "3d_fullres" && <Check className="ml-auto h-5 w-5 text-blue-600" />}
+                    </div>
+                  </div>
                 </div>
               </div>
               {/* Progress Bar and Submit Button */}

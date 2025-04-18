@@ -36,6 +36,7 @@ export default function PredictionsPage() {
     jobId: string;
     scanType: string;
     timestamp: string;
+    created_at: string;
   }[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingFiles, setIsFetchingFiles] = useState(true);
@@ -93,12 +94,12 @@ export default function PredictionsPage() {
         scanType: file.filename.includes("BRATS") ? "Brain" as const :
                  file.filename.includes("_la_") ? "Heart" as const : 
                  "Unknown" as const,
-        timestamp: file.timestamp || new Date().toISOString()
+        created_at: file.created_at 
       }));
       
       // Sort files by timestamp, most recent first
       const sortedFiles = filesWithType.sort((a, b) => 
-        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
       
       setNiftiFiles(sortedFiles);
@@ -335,7 +336,15 @@ export default function PredictionsPage() {
                         </td>
                         <td className="p-4">{getDisplayName(file.filename)}</td>
                         <td className="p-4 text-gray-600">
-                          {new Date(file.timestamp).toLocaleString()}
+                        <span title={new Date(parseInt(file.created_at)).toLocaleString()}>
+                          {new Date(parseInt(file.created_at)).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                          })}
+                          </span>
                         </td>
                         <td className="p-4">
                           <button
