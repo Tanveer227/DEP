@@ -12,8 +12,8 @@ export default function Home() {
     const username = localStorage.getItem('username');
 
     if (token && username) {
-      // If authenticated, redirect to dashboard
-      router.push('/dashboard');
+      // If authenticated, redirect to new upload page
+      router.push('/newupload');
     } else {
       // If not authenticated, redirect to login
       router.push('/login');
