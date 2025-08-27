@@ -163,19 +163,27 @@ def handle_inference():
 def get_nifti_files():
     try:
         niftis_dir = os.path.join(TEMP_RESULTS_PATH, 'niftis')
+        print(f"NIfTI directory path: {niftis_dir}") # Debug print
         if not os.path.exists(niftis_dir):
+            print(f"NIfTI directory does not exist: {niftis_dir}") # Debug print
             return jsonify({'success': False, 'error': 'NIfTI directory not found'}), 404
         
         nifti_files = []
+        files_in_dir = os.listdir(niftis_dir)
+        print(f"Files found in NIfTI directory: {files_in_dir}") # Debug print
         for file in os.listdir(niftis_dir):
             if file.lower().endswith(('.nii', '.nii.gz')):
                 # Extract job ID from filename (assuming format is job_id_filename.nii.gz)
                 job_id = file.split('_', 1)[0] if '_' in file else "unknown"
                 
+                file_path = os.path.join(niftis_dir, file)
+                created_at = os.path.getctime(file_path) # Get creation timestamp
+
                 nifti_files.append({
                     'id': file,  # Use filename as ID
                     'filename': file,
-                    'jobId': job_id
+                    'jobId': job_id,
+                    'created_at': created_at # Add created_at timestamp
                 })
         
         return jsonify({

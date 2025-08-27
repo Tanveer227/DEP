@@ -9,4 +9,4 @@ Werkzeug==3.0.1
 gunicorn==21.2.0
 numpy==1.26.4
 Pillow==10.2.0
-nibabel==5.2.0 
+nibabel==5.2.0
