@@ -72,7 +72,7 @@ export default function LoginPage() {
       <div className="w-full text-center mb-6 relative">
         <div className="inline-flex items-center justify-center mb-2">
           <BrainCircuit className="h-12 w-12 text-teal-400 mr-2" />
-          <h1 className="text-5xl sm:text-6xl font-bold text-white">MedNet</h1>
+          <h1 className="text-5xl sm:text-6xl font-bold text-white">IntelliClinix</h1>
         </div>
         <p className="text-teal-200 text-lg">AI-Powered Medical Imaging Annotation</p>
       </div>

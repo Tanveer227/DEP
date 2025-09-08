@@ -829,7 +829,7 @@ def send_to_dataset():
 
         # Get CVAT token with credentials
         try:
-            token, _ = get_cvat_token(username=cvat_username, password=cvat_password)
+            token, _ = get_cvat_token(use7rname=cvat_username, password=cvat_password)
             if not token:
                 return jsonify({"error": "Failed to authenticate with CVAT."}), 401
         except Exception as e:

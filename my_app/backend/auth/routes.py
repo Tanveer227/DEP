@@ -80,9 +80,7 @@ def login():
 
 @auth_bp.route('/user', methods=['GET'])
 def get_user():
-    """
-    Endpoint to get current user information.
-    """
+
     username = session.get('username')
     if not username:
         return jsonify({'authenticated': False}), 401
