@@ -7,7 +7,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const response = await axios.post("http://localhost:5000/create-cvat-task", req.body);
+    const response = await axios.post("http://localhost:5328/cvat/upload_tasks", req.body, { withCredentials: true });
     res.status(200).json(response.data);
   } catch (error) {
     console.error("Error creating CVAT task:", error);

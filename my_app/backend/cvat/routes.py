@@ -20,7 +20,7 @@ cvat_bp = Blueprint('cvat', __name__)
 
 # Get paths from config or use default ones
 from config import TEMP_UPLOADS_PATH, TEMP_RESULTS_PATH
-CVAT_HOST = "https://app.cvat.ai/api"
+CVAT_HOST = "http://localhost:8080/api"
 # Updated dataset configuration for both brain and heart
 LABEL_COLORS = {
     # Brain tumor labels
@@ -435,7 +435,7 @@ def save_annotations(annotations, task_id, output_dir="annotation_files"):
         print(f"Failed to save annotations: {str(e)}")
         return None
 
-def get_cvat_token(cvat_api_url="https://app.cvat.ai/api", username=None, password=None):
+def get_cvat_token(cvat_api_url="http://localhost:8080/api", username=None, password=None):
     """
     Authenticates with CVAT using the provided credentials
     and returns the authentication token and API URL.
@@ -474,7 +474,7 @@ def download_corrected_annotations_for_task(task, persistent_dir, cvat_username,
     Returns:
       str: File path to the downloaded (and possibly extracted) JSON annotation file.
     """
-    cvat_api_url = "https://app.cvat.ai/api"
+    cvat_api_url = "http://localhost:8080/api"
     # Get authentication token using the provided credentials
     token, _ = get_cvat_token(username=cvat_username, password=cvat_password)
     
@@ -829,14 +829,14 @@ def send_to_dataset():
 
         # Get CVAT token with credentials
         try:
-            token, _ = get_cvat_token(use7rname=cvat_username, password=cvat_password)
+            token, _ = get_cvat_token(username=cvat_username, password=cvat_password)
             if not token:
                 return jsonify({"error": "Failed to authenticate with CVAT."}), 401
         except Exception as e:
             return jsonify({"error": f"CVAT authentication failed: {str(e)}"}), 401
 
         results = []
-        with make_client(host="https://app.cvat.ai", credentials=(cvat_username, cvat_password)) as client:
+        with make_client(host="http://localhost:8080", credentials=(cvat_username, cvat_password)) as client:
             for task_id in task_ids:
                 try:
                     # Ensure task_id is an integer
@@ -1111,7 +1111,7 @@ def upload_tasks():
         except Exception as e:
             return jsonify({'success': False, 'error': f'CVAT authentication failed: {str(e)}'}), 401
 
-        cvat_api_url = "https://app.cvat.ai/api"
+        cvat_api_url = "http://localhost:8080/api"
         auth_headers = { "Authorization": f"Token {token}" }
 
         uploaded_tasks = []
@@ -1241,7 +1241,7 @@ def upload_tasks():
                 uploaded_tasks.append({
                     'task_id': task_id,
                     'task_name': task_name,
-                    'redirect_url': f"https://app.cvat.ai/tasks/{task_id}"
+                    'redirect_url': f"http://localhost:8080/tasks/{task_id}"
                 })
             except Exception as e:
                 print(f"Error processing {nifti_id}: {str(e)}")

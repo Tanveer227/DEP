@@ -10,27 +10,46 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 
-export default function LoginPage() {
+export default function SignupPage() {
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
   const [errorMessage, setErrorMessage] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
 
-  const handleLogin = async (e: FormEvent) => {
+  const handleSignup = async (e: FormEvent) => {
     e.preventDefault()
     setErrorMessage("")
     setIsLoading(true)
 
-    if (!username || !password) {
-      setErrorMessage("Both username and password are required.")
+    if (!username || !password || !confirmPassword) {
+      setErrorMessage("All fields are required.")
+      setIsLoading(false)
+      return
+    }
+
+    if (password !== confirmPassword) {
+      setErrorMessage("Passwords do not match.")
+      setIsLoading(false)
+      return
+    }
+
+    if (username.length < 3) {
+      setErrorMessage("Username must be at least 3 characters long.")
+      setIsLoading(false)
+      return
+    }
+
+    if (password.length < 6) {
+      setErrorMessage("Password must be at least 6 characters long.")
       setIsLoading(false)
       return
     }
 
     try {
-      const response = await fetch("http://localhost:5328/auth/login", {
+      const response = await fetch("http://localhost:5328/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -42,13 +61,13 @@ export default function LoginPage() {
       if (response.ok) {
         localStorage.setItem("username", username)
         toast({
-          title: "Login successful!",
-          description: "Redirecting...",
+          title: "Account created successfully!",
+          description: "Redirecting to your workspace...",
           variant: "default",
         })
         router.push("/newupload")
       } else {
-        setErrorMessage(data.error || "Invalid credentials.")
+        setErrorMessage(data.error || "Failed to create account.")
       }
     } catch (error) {
       setErrorMessage("Failed to connect to the server. Please try again.")
@@ -75,12 +94,12 @@ export default function LoginPage() {
 
       <Card className="w-full max-w-md bg-white/10 backdrop-blur-md border-teal-900/30 text-white shadow-xl">
         <CardHeader>
-          <CardTitle className="text-2xl text-center text-white">Welcome Back</CardTitle>
+          <CardTitle className="text-2xl text-center text-white">Create Account</CardTitle>
           <CardDescription className="text-teal-200 text-center">
-            Sign in to access your workspace
+            Join IntelliClinix to start annotating medical images
           </CardDescription>
         </CardHeader>
-        <form onSubmit={handleLogin}>
+        <form onSubmit={handleSignup}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="username" className="text-white">
@@ -91,7 +110,7 @@ export default function LoginPage() {
                 <Input
                   id="username"
                   type="text"
-                  placeholder="Enter your username"
+                  placeholder="Choose a username (min 3 chars)"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="bg-slate-800/50 border-slate-700 text-white pl-10 focus-visible:ring-teal-500"
@@ -110,9 +129,28 @@ export default function LoginPage() {
                 <Input
                   id="password"
                   type="password"
-                  placeholder="Enter your password"
+                  placeholder="Create a password (min 6 chars)"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  className="bg-slate-800/50 border-slate-700 text-white pl-10 focus-visible:ring-teal-500"
+                  disabled={isLoading}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword" className="text-white">
+                Confirm Password
+              </Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-2.5 h-5 w-5 text-teal-300" />
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="Confirm your password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
                   className="bg-slate-800/50 border-slate-700 text-white pl-10 focus-visible:ring-teal-500"
                   disabled={isLoading}
                   required
@@ -136,18 +174,18 @@ export default function LoginPage() {
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Authenticating...
+                  Creating Account...
                 </>
               ) : (
-                "Sign In"
+                "Create Account"
               )}
             </Button>
             <button
               type="button"
-              onClick={() => router.push('/signup')}
+              onClick={() => router.push('/login')}
               className="text-sm text-teal-200 hover:text-white underline"
             >
-              Create an account
+              Already have an account? Sign in
             </button>
           </CardFooter>
         </form>

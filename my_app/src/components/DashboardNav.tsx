@@ -17,8 +17,6 @@ export default function DashboardNav() {
   // Helper to determine if the current path is active
   const isActive = (path: string) => pathname === path;
 
-
-
   // Helper to format breadcrumb text
   const getPageTitle = () => {
     const current = pathname.replace("/", "");
@@ -27,23 +25,20 @@ export default function DashboardNav() {
   };
 
   const handleLogout = async () => {
-  try {
-    
-    await fetch("https://app.cvat.ai/api/auth/logout", {
-      method: "POST",
-      credentials: "include", // VERY important, sends cookies with the request
-    });
-  } catch (err) {
-    console.error("Logout error:", err);
-  } finally {
-
-    localStorage.removeItem("token");
-    localStorage.removeItem("session");
-
-    // Redirect to login page
-    window.location.href = "/login";
-  }
-};
+    try {
+      await fetch("http://localhost:5328/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch (err) {
+      console.error("Logout error:", err);
+    } finally {
+      localStorage.removeItem("token");
+      localStorage.removeItem("session");
+      localStorage.removeItem("username");
+      window.location.href = "/login";
+    }
+  };
 
   return (
     <div className="bg-gradient-to-r from-blue-900 to-indigo-900 shadow-lg">
@@ -106,9 +101,10 @@ export default function DashboardNav() {
             </button>
             <div className="h-6 border-r border-blue-700"></div>
             <button
+              onClick={handleLogout}
               className="p-2 rounded-full text-blue-200 hover:text-white hover:bg-blue-800 hover:bg-opacity-30 transition-colors duration-200"
             >
-              <LogOut onClick = {handleLogout} className="h-5 w-5" />
+              <LogOut className="h-5 w-5" />
             </button>
           </div>
         </div>

@@ -1,21 +1,17 @@
 from flask import Blueprint, request, jsonify, session
-from bson.objectid import ObjectId  # Import ObjectId for serialization
-from .cvat_auth import authenticate_with_cvat
+from bson.objectid import ObjectId
 from .database import (
     get_users_collection,
     create_user,
     get_user_by_username,
     update_last_login,
-    is_user_validated
 )
 import bcrypt
 
 auth_bp = Blueprint('auth', __name__)
 
+
 def serialize_objectid(data):
-    """
-    Helper function to convert ObjectId to string recursively in a dictionary.
-    """
     if isinstance(data, dict):
         return {key: serialize_objectid(value) for key, value in data.items()}
     elif isinstance(data, list):
@@ -24,84 +20,79 @@ def serialize_objectid(data):
         return str(data)
     return data
 
-@auth_bp.route('/login', methods=['POST'])
-def login():
-    """
-    Endpoint to authenticate with CVAT using username and password.
-    If the user is new and validated by CVAT, they will be added to the database.
-    """
-    print("\n=== Login Request Received ===")
-    data = request.json
-    print(f"Request data: {data}")
-    username = data.get('username')
-    password = data.get('password')
-    
+
+@auth_bp.route('/signup', methods=['POST'])
+def signup():
+    data = request.json or {}
+    username = (data.get('username') or '').strip()
+    password = (data.get('password') or '').strip()
+
     if not username or not password:
-        print("Error: Missing username or password")
         return jsonify({'error': 'Username and password are required'}), 400
-    
-    try:
-        print(f"\nAttempting CVAT authentication for user: {username}")
-        # Authenticate with CVAT
-        token_data = authenticate_with_cvat(username, password)
-        print(f"CVAT authentication successful: {token_data}")
-        token = token_data.get('key')
-        
-        # Check if user exists in MongoDB
-        print(f"\nChecking if user exists in database: {username}")
-        existing_user = get_user_by_username(username)
-        
-        if not existing_user:
-            print(f"User {username} not found in database. Creating new user...")
-            # Create new user if they don't exist
-            hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-            new_user = create_user(username, hashed_password)
-            print(f"New user created successfully: {new_user}")
-        else:
-            print(f"User {username} found in database. Updating last login...")
-            # Update last login for existing user
-            update_last_login(username)
-            print(f"Last login updated for user: {username}")
-        
-        # Store token in session
-        session['cvat_token'] = token
-        session['username'] = username
-        print(f"\nSession created for user: {username}")
-        
-        return jsonify({
-            'token': token,
-            'username': username,
-            'is_new_user': not existing_user
-        }), 200
-    
-    except Exception as e:
-        print(f"\nError in login process: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+
+    # Enforce simple length policy
+    if len(username) < 3 or len(password) < 6:
+        return jsonify({'error': 'Username must be >=3 chars and password >=6 chars'}), 400
+
+    users = get_users_collection()
+    if users.find_one({'username': username}):
+        return jsonify({'error': 'Username already exists'}), 409
+
+    hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    user = create_user(username, hashed_password)
+
+    session.clear()
+    session['username'] = user['username']
+
+    return jsonify({
+        'message': 'Signup successful',
+        'user': serialize_objectid({k: v for k, v in user.items() if k != 'password'})
+    }), 201
+
+
+@auth_bp.route('/signin', methods=['POST'])
+@auth_bp.route('/login', methods=['POST'])  # backwards compatibility
+def signin():
+    data = request.json or {}
+    username = (data.get('username') or '').strip()
+    password = (data.get('password') or '').strip()
+
+    if not username or not password:
+        return jsonify({'error': 'Username and password are required'}), 400
+
+    user = get_user_by_username(username)
+    if not user:
+        return jsonify({'error': 'Invalid credentials'}), 401
+
+    stored_hash = user.get('password', '').encode('utf-8')
+    if not stored_hash or not bcrypt.checkpw(password.encode('utf-8'), stored_hash):
+        return jsonify({'error': 'Invalid credentials'}), 401
+
+    update_last_login(username)
+
+    session.clear()
+    session['username'] = username
+
+    return jsonify({'message': 'Login successful', 'username': username}), 200
+
 
 @auth_bp.route('/user', methods=['GET'])
 def get_user():
-
     username = session.get('username')
     if not username:
         return jsonify({'authenticated': False}), 401
-    
+
     user = get_user_by_username(username)
     if not user:
         return jsonify({'authenticated': False}), 401
-    
-    # Serialize ObjectId and remove sensitive information
+
     user.pop('password', None)
     serialized_user = serialize_objectid(user)
-    
-    return jsonify({
-        'authenticated': True,
-        'user': serialized_user
-    })
+
+    return jsonify({'authenticated': True, 'user': serialized_user})
+
 
 @auth_bp.route('/logout', methods=['POST'])
 def logout():
-    """
-    Endpoint to logout the current user.
-    """
     session.clear()
     return jsonify({'message': 'Logged out successfully'}), 200
