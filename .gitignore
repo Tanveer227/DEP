@@ -7,3 +7,4 @@ my_app/backend/auth/__pycache__/routes.cpython-313.pyc
 my_app/backend/temp_uploads
 my_app/backend/temp_results
 my_app/backend/annotation_files
+cvat
